@@ -29,11 +29,12 @@ var ip = "localhost" //what port we want to work on
 var port = 6969 //what port number we want to start on (port increments by 1)
 //"GF", "mGF", "FILO_GPGF", "ALL_GPGF", "G_FILO_GPGF", "G_ALL_GPGF"
 //"FILO_GPmGF", "ALL_GPmGF", "G_FILO_GPmGF", "G_ALL_GPmGF"
-//var algorithms = []string{"GF", "mGF", "FILO_GPGF", "ALL_GPGF", "G_FILO_GPGF", "G_ALL_GPGF", "FILO_GPmGF", "ALL_GPmGF", "G_FILO_GPmGF", "G_ALL_GPmGF"} //all the algorithms we want to test
-var algorithms = []string{"GF"}
+var algorithms = []string{"GF", "mGF", "FILO_GPGF", "ALL_GPGF", "G_FILO_GPGF", "G_ALL_GPGF", "FILO_GPmGF", "ALL_GPmGF", "G_FILO_GPmGF", "G_ALL_GPmGF"} //all the algorithms we want to test
+//var algorithms = []string{"mGF"}
 var debug = false //true means extra print statements
 var distance_Formula = "hyperbolic" //euclidean or hyperbolic
 var buf_Size = 99999 //buffer size for reading
+var output = "./results/out_9.csv"
 //----------------------------------------------
 
 //----------------------------------------------
@@ -782,7 +783,7 @@ func main() {
 	var global_Packet_loss []float64 //seeing if packets get dropped at a local minimum
 	var global_Stretch []float64 //comparing the forwarding algorithm path with dijkstra's path
 	var global_Packet_size []float64 //the size of the packet
-	var global_Extranious_Hops []float64 //used to see if we have extra hops (hops after we deliver the packet)
+	var global_Extraneous_Hops []float64 //used to see if we have extra hops (hops after we deliver the packet)
 	var global_Pressure_Percentage []float64 //percentage of packets that entered pressure mode
 	var global_Pressure_Count []float64 //used to count number of hops made in pressure mode
 	var global_Nodes_Visited []float64 //used to see the number of unique nodes visited
@@ -866,7 +867,7 @@ func main() {
 			var latency []float64 //measuring RTT
 			var packet_loss []float64 //seeing if packets get dropped at a local minimum
 			var path_stretch []float64 //comparing the forwarding algorithm path with dijkstra's path
-			var extranious_Hops []float64 //used to see if we have extra hops (hops after we deliver the packet)
+			var extraneous_Hops []float64 //used to see if we have extra hops (hops after we deliver the packet)
 			var packet_size []float64 //the size of the packet
 			var pressure_Percentage []float64 //percentage of packets in pressure mode
 			var pressure_Count []float64 //hops made in pressure mode
@@ -932,7 +933,7 @@ func main() {
 						RTT_d_hops := float64(d_hops*2) //multiplied by 2 because its to and from
 						packet_Hops := float64(len(return_Packet.Path_Traversed)-1)
 						path_stretch = append(path_stretch, packet_Hops/RTT_d_hops)
-						extranious_Hops = append(extranious_Hops, (float64(hops)-packet_Hops)/float64(hops))
+						extraneous_Hops = append(extraneous_Hops, (float64(hops)-packet_Hops)/float64(hops))
 						nodes_Visited = append(nodes_Visited, float64(len(return_Packet.Nodes_Visit))/float64(len(topology)))
 						if return_Packet.Pressure_Gauge > 0{ //we only want to look at algorithms that use pressure mode at least once
 							pressure_Count = append(pressure_Count, float64(return_Packet.Pressure_Gauge)/dest_Hop(return_Packet.Path_Traversed, return_Packet.Destination))
@@ -962,7 +963,7 @@ func main() {
 			global_Packet_loss = append(global_Packet_loss, avg(packet_loss))
 			global_Stretch = append(global_Stretch, avg(path_stretch))
 			global_Packet_size = append(global_Packet_size, avg(packet_size))
-			global_Extranious_Hops = append(global_Extranious_Hops, avg(extranious_Hops))
+			global_Extraneous_Hops = append(global_Extraneous_Hops, avg(extraneous_Hops))
 			global_Pressure_Percentage = append(global_Pressure_Percentage, avg(pressure_Percentage))
 			global_Pressure_Count = append(global_Pressure_Count, avg(pressure_Count))
 			global_Nodes_Visited = append(global_Nodes_Visited, avg(nodes_Visited))
@@ -989,12 +990,13 @@ func main() {
 	//GOlang is doing TRUNCATION, not ROUNDING - error of .001 at most
 	//----------------------------------------------
 	fmt.Printf("-----------------------\n")
+	var final_Values []float64
 	for x := 0; x < len(algorithms); x++{
 		var temp_Latency []float64
 		var temp_Packet_loss []float64
 		var temp_Stretch []float64
 		var temp_Size []float64
-		var temp_Extranious_Hops []float64
+		var temp_Extraneous_Hops []float64
 		var temp_Pressure_Percentage []float64
 		var temp_Pressure_Count []float64
 		var temp_Nodes_Visited []float64
@@ -1004,25 +1006,70 @@ func main() {
 				temp_Packet_loss = append(temp_Packet_loss, global_Packet_loss[y])
 				temp_Stretch = append(temp_Stretch, global_Stretch[y])
 				temp_Size = append(temp_Size, global_Packet_size[y])
-				temp_Extranious_Hops = append(temp_Extranious_Hops, global_Extranious_Hops[y])
+				temp_Extraneous_Hops = append(temp_Extraneous_Hops, global_Extraneous_Hops[y])
 				temp_Pressure_Percentage = append(temp_Pressure_Percentage, global_Pressure_Percentage[y])
 				temp_Pressure_Count = append(temp_Pressure_Count, global_Pressure_Count[y])
 				temp_Nodes_Visited = append(temp_Nodes_Visited, global_Nodes_Visited[y])
 			}
 		}
-		fmt.Printf("Printing results for: " + algorithms[x] + " \n")
-		fmt.Printf("%.4v\n", avg(temp_Latency))
-		fmt.Printf("%.4v\n", avg(temp_Size))
-		fmt.Printf("%.4v%%\n", 100*avg(temp_Packet_loss))
-		fmt.Printf("%.4v\n", avg(temp_Stretch))
-		fmt.Printf("%.4v%%\n", avg(temp_Extranious_Hops))
-		fmt.Printf("%.4v%%\n", avg(temp_Pressure_Percentage))
-		fmt.Printf("%.4v%%\n", avg(temp_Pressure_Count))
-		fmt.Printf("%.4v%%\n", avg(temp_Nodes_Visited))
+		//fmt.Printf("Printing results for: " + algorithms[x] + " \n")
+		//fmt.Printf("%.4v\n", avg(temp_Latency))
+		final_Values = append(final_Values, avg(temp_Latency))
+		//fmt.Printf("%.4v\n", avg(temp_Size))
+		final_Values = append(final_Values, avg(temp_Size))
+		//fmt.Printf("%.4v%%\n", 100*avg(temp_Packet_loss))
+		final_Values = append(final_Values, 100*avg(temp_Packet_loss))
+		//fmt.Printf("%.4v\n", avg(temp_Stretch))
+		final_Values = append(final_Values, avg(temp_Stretch))
+		//fmt.Printf("%.4v%%\n", avg(temp_Extraneous_Hops))
+		final_Values = append(final_Values, 100*avg(temp_Extraneous_Hops))
+		//fmt.Printf("%.4v%%\n", avg(temp_Pressure_Percentage))
+		final_Values = append(final_Values, 100*avg(temp_Pressure_Percentage))
+		//fmt.Printf("%.4v%%\n", avg(temp_Pressure_Count))
+		final_Values = append(final_Values, 100*avg(temp_Pressure_Count))
+		//fmt.Printf("%.4v%%\n", avg(temp_Nodes_Visited))
+		final_Values = append(final_Values, 100*avg(temp_Nodes_Visited))
 		if x != len(algorithms)-1{
 			fmt.Printf("\n")
 		}
 	}
+	
+	//Creating a file
+	file, err := os.Create(output)
+	check_Error(err)
+	defer file.Close()
+	
+	for x := 0; x < len(algorithms); x++{
+		fmt.Printf("\t" + algorithms[x])
+		_, err = io.WriteString(file, "," + algorithms[x])
+		check_Error(err)
+	}
+	fmt.Printf("\n")
+	_, err = io.WriteString(file, "\n")
+	check_Error(err)
+	
+	
+	metric_names := []string{"Latency", "Packet Size", "Packet Loss", "Path Stretch", "Extraneous Hops", "Pressure percentage", "Pressure count", "Nodes visited"}
+	for x := 0; x < len(metric_names); x++{
+		fmt.Printf(metric_names[x] + "\t")
+		_, err = io.WriteString(file, metric_names[x] + ",")
+		check_Error(err)
+		for y := x; y < len(final_Values); y=y+len(metric_names){	
+			fmt.Printf("%.6v", final_Values[y])
+			_, err = io.WriteString(file, strconv.FormatFloat(float64(final_Values[y]), 'f', -1, 64))
+			check_Error(err)
+			if y+len(metric_names) < len(final_Values){
+				fmt.Printf("\t")
+				_, err = io.WriteString(file, ",")
+				check_Error(err)
+			}
+		}
+		fmt.Printf("\n")
+		_, err = io.WriteString(file, "\n")
+		check_Error(err)
+	}
+	fmt.Printf("\n")
+	check_Error(err)
 	//----------------------------------------------
 
 }
